@@ -7,6 +7,9 @@ spring:
     username: krsna
     password: Krsna@108
 
+  config:
+    import: optional:configserver:http://localhost:9095
+
   jpa:
     show-sql: true
     hibernate:
@@ -16,11 +19,11 @@ spring:
   application:
     name: RATING-SERVICE
 
-eureka:
-  client:
-#    fetch-registry: true
-#    register-with-eureka: true
-    service-url:
-      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka/}
-  instance:
-    prefer-ip-address: true
+#eureka:
+#  client:
+##    fetch-registry: true
+##    register-with-eureka: true
+#    service-url:
+#      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka/}
+#  instance:
+#    prefer-ip-address: true

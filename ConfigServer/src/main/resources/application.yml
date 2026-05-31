@@ -1,0 +1,13 @@
+server:
+  port: 9095
+
+spring:
+  application:
+    name: CONFIG-SERVER
+
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/Abinashshaw/config-server-microservice.git
+          clone-on-start: true
