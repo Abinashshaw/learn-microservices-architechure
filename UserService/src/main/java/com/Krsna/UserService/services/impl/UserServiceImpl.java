@@ -11,6 +11,7 @@ import com.Krsna.UserService.services.UserService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +49,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Retry(name = "")
     public List<User> getAllUser() {
         List<User> users = userRepository.findAll();
 //        //get ratings by user id
@@ -63,7 +65,7 @@ public class UserServiceImpl implements UserService {
         return users;
     }
 
-
+    @Retry(name = "ratingServiceRetry", fallbackMethod = "ratingServiceFallback")
     public List<Rating> getRatingsByUserId(String userId) {
 //        ArrayList<Rating> ratings = restTemplate.getForObject("http://localhost:9092/ratings/user/"+userId, ArrayList.class);
 //        ratings = objectMapper.convertValue(ratings, new TypeReference<ArrayList<Rating>>(){});
@@ -85,6 +87,13 @@ public class UserServiceImpl implements UserService {
 //            ratings = objectMapper.convertValue(response.getBody(), new TypeReference<ArrayList<Rating>>(){});
 //        }
 
+//        log.info("Retry ratingSertviceRetry executing...");
+//
+//        if(2<3){
+//            throw new ResourceNotFoundException("Executing Retry !!");
+//        }
+//
+
         List<Rating> ratings = new ArrayList<>();
 
         ResponseEntity<List<Rating>> response = ratingService.getRatingsByUserId(userId);
@@ -93,24 +102,47 @@ public class UserServiceImpl implements UserService {
             ratings = response.getBody();
         } else if (response.getStatusCode().is5xxServerError()) {
             log.error("Rating Service is Down. Got response {}", response);
+//            throw new ResourceNotFoundException("Rating Service is temporarily Not Reachable");
         } else{
             log.error("Ratings not found with user id: {}", userId);
         }
         return ratings;
     }
 
+    public List<Rating> ratinServiceFallback(String userId, Throwable t) {
+        log.info(t.getMessage());
+        return new ArrayList<Rating>();
+
+    }
+
+    @Retry(name="HotelServiceRetry", fallbackMethod = "hotelServiceFallback")
     public Hotel getHotelByHotelId(String hotelId) {
 //        ResponseEntity<Hotel> response = restTemplate.getForEntity("http://localhost:9093/hotels/"+hotelId, Hotel.class);
 //        ResponseEntity<Hotel> response = restTemplate.getForEntity("http://HOTEL-SERVICE/hotels/"+hotelId, Hotel.class);
+        log.info("Retry Trying....");
         ResponseEntity<Hotel> response = hotelService.getHotelByHotelId(hotelId);
         if (response.getStatusCode().is2xxSuccessful()){
             log.info("Hotel found with id: {} is {}", hotelId, response);
         } else if (response.getStatusCode().is5xxServerError()) {
             log.error("Hotel Service is Down got response {}",response);
+//            throw new ResourceNotFoundException("Hotel Service is temporarily Not Reachable");
         } else {
             log.error("Hotel not found with id: {} ", hotelId);
         }
         return response.getBody();
+    }
+
+    public Hotel hotelServiceFallback(String hotelId, Throwable t){
+        log.info(t.getMessage());
+        log.info("Fallback for String hotelId is executed in UserServiceImpl !!");
+        Hotel hotel = Hotel.builder()
+                        .hotelId(hotelId)
+                        .name("Dummy Hotel name")
+                        .about("Dummy about Hotel")
+                        .location("Dummy location")
+                        .build();
+
+        return hotel;
     }
 
     @Override
