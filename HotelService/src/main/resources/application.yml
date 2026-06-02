@@ -10,21 +10,5 @@ spring:
   config:
     import: optional:configserver:http://localhost:9095
 
-  jpa:
-    show-sql: true
-    hibernate:
-      ddl-auto: update
-      format_sql: true
-
   application:
     name: HOTEL-SERVICE
-
-#eureka:
-#  client:
-#    service-url:
-#      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka/}
-#
-#  instance:
-#    prefer-ip-address: true
-#    fetch-registry: true
-#    register-with-eureka: true

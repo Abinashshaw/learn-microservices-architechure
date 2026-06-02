@@ -34,22 +34,22 @@ public class ProjectConfig {
                 route( "user-route", r ->
                         r.path("/users/**")
                                  .filters(f -> f
-//                                         .retry(retryConfig ->
-//                                                 retryConfig.setRetries(3).setMethods(HttpMethod.GET, HttpMethod.POST)
-//                                                .setBackoff(Duration.ofMillis(100), Duration.ofMillis(1000), 2, false).setJitter(0.5))
-                                         .circuitBreaker(c -> c.setName("UserCircuitBreaker")
-                                                 .setFallbackUri("forward:/fallback-call"))
-                                         .rewritePath("/users/?(?<remaining>.*)", "/${remaining}"))
+                                .circuitBreaker(c -> c.setName("UserCircuitBreaker").setFallbackUri("forward:/fallback-call"))
+                                .retry(retryConfig -> retryConfig.setRetries(3).setMethods(HttpMethod.GET, HttpMethod.POST)
+                                        .setBackoff(Duration.ofMillis(100), Duration.ofMillis(10000), 2, true))
+                                 .rewritePath("/users/?(?<remaining>.*)", "/${remaining}"))
                                  .uri("lb://"+userServiceId))
 
                     .route("hotel-route", r ->
                         r.path("/hotels/**")
-                                .filters(f -> f.circuitBreaker(c -> c.setName("HotelCircuitBreaker").setFallbackUri("forward:/fallback-call")).rewritePath("/hotels/?(?<remaining>.*)", "/${remaining}"))
+                                .filters(f -> f.circuitBreaker(c -> c.setName("HotelCircuitBreaker").setFallbackUri("forward:/fallback-call"))
+                                .rewritePath("/hotels/?(?<remaining>.*)", "/${remaining}"))
                                 .uri("lb://"+hotelServiceId))
 
                     .route("rating-route", r ->
                         r.path("/ratings/**")
-                                .filters(f -> f.circuitBreaker(c -> c.setName("RatingCircuitBreaker").setFallbackUri("forward:/fallback-call")).rewritePath("/ratings/?(?<remaining>.*)", "/${remaining}"))
+                                .filters(f -> f.circuitBreaker(c -> c.setName("RatingCircuitBreaker").setFallbackUri("forward:/fallback-call"))
+                                .rewritePath("/ratings/?(?<remaining>.*)", "/${remaining}"))
                                 .uri("lb://"+ratingServiceId))
                 .build();
 

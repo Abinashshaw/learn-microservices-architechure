@@ -1,6 +1,7 @@
 package com.Krsna.UserService.controllers;
 
 import com.Krsna.UserService.entities.User;
+import com.Krsna.UserService.exceptions.ResourceNotFoundException;
 import com.Krsna.UserService.services.UserService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -32,13 +33,16 @@ public class UserController {
         return ResponseEntity.ok(userService.getAllUser());
     }
 
-    int retry = 1;
+//    int retry = 1;
     @GetMapping("/{userId}")
-    @Retry(name = "GetUserByUserId", fallbackMethod = "getUserFallback")
+//    @Retry(name = "GetUserByUserId", fallbackMethod = "getUserFallback")
+    @CircuitBreaker(name = "GetUserCircuitBreaker", fallbackMethod = "getUserFallback")
     public ResponseEntity<User> getUser(@PathVariable String userId) {
-        retry++;
-        log.info("Retry Count : "+retry);
+//        retry++;
+//        log.info("Retry Count : "+retry);
 //        Here we hit this api with a userId that did not exist it hit DB 3 times then returned user not found !!
+//        throw new ResourceNotFoundException("User with id "+userId+" does not exists");
+
         return ResponseEntity.ok(userService.getUser(userId));
     }
 

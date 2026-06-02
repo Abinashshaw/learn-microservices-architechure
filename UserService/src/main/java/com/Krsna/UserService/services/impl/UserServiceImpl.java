@@ -48,24 +48,35 @@ public class UserServiceImpl implements UserService {
         return userRepository.save(user);
     }
 
+    public User createUserFallback(User user, Throwable t){
+        log.info("createUserFallback called..");
+        log.info(t.getMessage());
+        return User.builder().userId("fallback UUID").name("Fallback name").build();
+    }
+
     @Override
-    @Retry(name = "")
     public List<User> getAllUser() {
         List<User> users = userRepository.findAll();
 //        //get ratings by user id
-        users.stream().map(user -> { user.setRatings(
-                            getRatingsByUserId(user.getUserId()).stream().map(rating -> {
-                                rating.setHotel(getHotelByHotelId(rating.getHotelId())); return rating;
-                            }).toList()
-                        ); return user;}).toList();
+//        users.stream().map(user -> { user.setRatings(
+//                            getRatingsByUserId(user.getUserId()).stream().map(rating -> {
+//                                rating.setHotel(getHotelByHotelId(rating.getHotelId())); return rating;
+//                            }).toList()
+//                        ); return user;}).toList();
 
+
+        users.stream().map(user -> {
+             log.info("User data fetching for user {}", user);
+             user.setRatings(getUser(user.getUserId()).getRatings());
+             return user;
+        }).toList();
 
         log.info("Users with Ratings fetched successfully {}", users);
 
         return users;
     }
 
-    @Retry(name = "ratingServiceRetry", fallbackMethod = "ratingServiceFallback")
+    @CircuitBreaker(name = "ratingServiceRetry", fallbackMethod = "ratingServiceFallback")
     public List<Rating> getRatingsByUserId(String userId) {
 //        ArrayList<Rating> ratings = restTemplate.getForObject("http://localhost:9092/ratings/user/"+userId, ArrayList.class);
 //        ratings = objectMapper.convertValue(ratings, new TypeReference<ArrayList<Rating>>(){});
@@ -115,11 +126,11 @@ public class UserServiceImpl implements UserService {
 
     }
 
-    @Retry(name="HotelServiceRetry", fallbackMethod = "hotelServiceFallback")
+    @CircuitBreaker(name="HotelServiceRetry", fallbackMethod = "hotelServiceFallback")
     public Hotel getHotelByHotelId(String hotelId) {
 //        ResponseEntity<Hotel> response = restTemplate.getForEntity("http://localhost:9093/hotels/"+hotelId, Hotel.class);
 //        ResponseEntity<Hotel> response = restTemplate.getForEntity("http://HOTEL-SERVICE/hotels/"+hotelId, Hotel.class);
-        log.info("Retry Trying....");
+//        log.info("Retry Trying....");
         ResponseEntity<Hotel> response = hotelService.getHotelByHotelId(hotelId);
         if (response.getStatusCode().is2xxSuccessful()){
             log.info("Hotel found with id: {} is {}", hotelId, response);
@@ -147,8 +158,18 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User getUser(String userId) {
+        log.info("Finding User with userId {}", userId);
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found with Given Id "+userId));
         List<Rating> ratings = getRatingsByUserId(userId);
+
+        ratings.stream().map(rating -> {
+            log.info("Hotel data fetching for rating {}", rating);
+            Hotel hotel = getHotelByHotelId(rating.getHotelId());
+            if(hotel != null)
+                rating.setHotel(hotel);
+            return rating;
+        }).toList();
+
         user.setRatings(ratings);
         return user;
     }
